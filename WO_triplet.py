@@ -53,10 +53,9 @@ def train():
                 train_writer = tf.summary.FileWriter('./watchout/models/tripletnetwork/logs/train', triplet_sess.graph)
                 test_writer = tf.summary.FileWriter('./watchout/models/tripletnetwork/logs/test')
 
-                #while True:
-                for i in range(20):
-                    # anchor, positive, negative = get_train_data(_batch=40, d_sess=sess)
-                    anchor, positive, negative = get_train_data(_batch=4, d_sess=sess,
+                while True:
+                #for i in range(20):
+                    anchor, positive, negative = get_train_data(_batch=40, d_sess=sess,
                                                                 d_tensors={'image_tensor': image_tensor,
                                                                            'detection_boxes': detection_boxes,
                                                                            'detection_scores': detection_scores,
@@ -70,8 +69,8 @@ def train():
                     triplet_sess.run(increment_global_step)
                     print('train done')
 
-                    #if global_step.eval() % 200 == 0:
-                    if global_step.eval() % 1 == 0:
+                    if global_step.eval() % 200 == 0:
+                    #if global_step.eval() % 1 == 0:
                         train_summary = tf.Summary(value=[tf.Summary.Value(tag="train_loss",
                                                                            simple_value=training_loss)])
                         train_writer.add_summary(train_summary, global_step.eval())
@@ -80,10 +79,9 @@ def train():
                                                                     global_step.eval()) + '.hdf5'))
                         print('train write done')
 
-                        #if global_step.eval() % 600 == 0:
-                        if global_step.eval() % 2 == 0:
-                            #_anchor, _positive, _negative = get_train_data(_batch=100, d_sess=sess)
-                            _anchor, _positive, _negative = get_train_data(_batch=4, d_sess=sess,
+                        if global_step.eval() % 600 == 0:
+                        #if global_step.eval() % 2 == 0:
+                            _anchor, _positive, _negative = get_train_data(_batch=100, d_sess=sess,
                                                                            d_tensors={'image_tensor': image_tensor,
                                                                                       'detection_boxes': detection_boxes,
                                                                                       'detection_scores': detection_scores,
