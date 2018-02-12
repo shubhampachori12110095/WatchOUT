@@ -3,7 +3,7 @@ import os
 import sys
 import tensorflow as tf
 import pandas as pd
-import random
+import random,scipy, json
 from PIL import Image
 from keras.models import Model, Sequential
 from keras.layers import Dense, Flatten, Dropout, Input, Lambda
@@ -23,54 +23,6 @@ def load_image_into_numpy_array(image):
 		(im_height, im_width, 3)).astype(np.uint8)
 
 
-def create_path(subpath, target):
-	return subpath + "/" + target
-
-
-def create_image_path(path):
-	return os.path.join(os.getcwd(), 'watchout/data/raw_deepfashion_dataset/Img/' + path)
-
-
-def random_sample(batch=1):
-	ann = Anno(os.path.join(os.getcwd(), 'watchout/data/raw_deepfashion_dataset/Anno'))
-	t_labels = []
-	t_paths = []
-	p_paths = []
-	n_labels = []
-	n_paths = []
-	for i in range(batch):
-
-		ran = random.randrange(0, len(ann))
-		target_path, target_label = (ann.loc[ran]['image_name'], ann.loc[ran]['category_label'])
-		positive_ran = random.choice(ann[ann['category_label'] == target_label].index.values)
-		positive_path = ann[ann['category_label'] == target_label].loc[positive_ran]['image_name']
-
-		while target_path == positive_path:
-			print('loop with "target_path == positive_path"')
-			positive_ran = random.choice(ann[ann['category_label'] == target_label].index.values)
-			positive_path = ann[ann['category_label'] == target_label].loc[positive_ran]['image_name']
-
-		negative_ran = random.choice(ann[ann['category_label'] != target_label].index.values)
-		negative_path = ann[ann['category_label'] != target_label].loc[negative_ran]['image_name']
-		negative_label = ann[ann['category_label'] != target_label].loc[negative_ran]['category_label']
-
-		t_labels.append(target_label)
-		t_paths.append(create_image_path(target_path))
-		p_paths.append(create_image_path(positive_path))
-		n_labels.append(negative_label)
-		n_paths.append(create_image_path(negative_path))
-
-	return (t_labels, t_paths, p_paths), (n_labels, n_paths)
-
-
-def Anno(path, head=False):
-	category_path = create_path(path, "list_category_img.txt")
-	category_data = pd.read_csv(category_path, sep=r"\s*", skiprows=[0], header=0)
-	if head:
-		return category_data.head(100)
-	return category_data
-
-
 def get_latest_weights_and_global_step(_path):
 	files = os.listdir(path=_path)
 	files.reverse()
@@ -84,7 +36,9 @@ def promising_box_index(scores):
 	return len(scores)
 
 
-def promising_boxes(boxes, scores):
+def promising_boxes(boxes, scores, is_eval=False):
+	if is_eval:
+		return tf.slice(tf.squeeze(boxes), [0, 0], [1, 4])
 	promising_idx = promising_box_index(scores)
 	return tf.slice(tf.squeeze(boxes), [0, 0], [promising_idx, 4])
 
@@ -107,8 +61,6 @@ def image_from_path(target, positive, negative):
 	tmp_a = Image.open(target)
 	tmp_p = Image.open(positive)
 	tmp_n = Image.open(negative)
-
-	# arr = array(img, dtype="float32")
 
 	anchor = tmp_a.copy()
 	anchor = anchor.resize((299, 299), Image.ANTIALIAS)
@@ -138,7 +90,7 @@ def triplet_loss(y_true, y_pred):
 	return K.mean(K.maximum(K.constant(0), K.square(y_pred[:, 0, 0]) - K.square(y_pred[:, 1, 0]) + margin))
 
 
-def get_triplet_model():
+def get_triplet_model(is_full=True):
 	inceptionv3_input = Input(shape=(299, 299, 3))
 	inceptionv3_f = InceptionV3(include_top=False, weights='imagenet', input_tensor=inceptionv3_input)
 	net = inceptionv3_f.output
@@ -146,7 +98,8 @@ def get_triplet_model():
 	net = Dense(1024, activation='relu', name='embedded')(net)
 
 	base_model = Model(inceptionv3_f.input, net, name='base_inceptionv3')
-
+	if is_full == False:
+		return base_model
 	input_anchor = Input(shape=(299, 299, 3), name='input_anchor')
 	input_positive = Input(shape=(299, 299, 3), name='input_pos')
 	input_negative = Input(shape=(299, 299, 3), name='input_neg')
@@ -176,8 +129,24 @@ def get_detector_graph():
 	return detection_graph
 
 
+def eval_data(single_path, d_sess, d_tensors):
+	image = Image.open(os.path.join('./watchout/data/raw_deepfashion_dataset/Img',single_path))
+	image_np = load_image_into_numpy_array(image)
+	image_np_expanded = np.expand_dims(image_np, axis=0)
+	(_image_tensor, _boxes, scores, classes, num) = d_sess.run(
+		[d_tensors['image_tensor'], d_tensors['detection_boxes'], d_tensors['detection_scores'],
+		 d_tensors['detection_classes'], d_tensors['num_detections']],
+		feed_dict={d_tensors['image_tensor']: image_np_expanded})
+	target_box = promising_boxes(_boxes, scores[0], is_eval=True)
+	cropped_image = tf.image.crop_and_resize(image=image_np_expanded / 255.0,
+													 boxes=[target_box.eval().tolist()[0]],
+													 box_ind=[0],
+													 crop_size=[299, 299])
+	return image.resize((299,299)), np.expand_dims(cropped_image[0].eval(), axis=0), classes
+
+
 def get_train_data(_batch, d_sess,d_tensors):
-	(t_lbl, t_path, p_path), (n_lbl, n_path) = random_sample(_batch)
+	(t_lbl, t_path, p_path), (n_lbl, n_path) = random_triplet_sample(_batch)
 
 	assert len(set([ x == y for (x,y) in zip(t_lbl, n_lbl)])) == 1 and list(set([ x == y for (x,y) in zip(t_lbl, n_lbl)]))[0] == False
 
@@ -210,3 +179,89 @@ def get_train_data(_batch, d_sess,d_tensors):
 	assert anchor.shape[0] == positive.shape[0] and positive.shape[0] == negative.shape[0]
 
 	return anchor, positive, negative
+
+
+def random_triplet_sample(batch=1, is_train=True):
+	ann = Anno(is_train=is_train)
+	t_labels = []
+	t_paths = []
+	p_paths = []
+	n_labels = []
+	n_paths = []
+	for i in range(batch):
+
+		ran = random.randrange(0, len(ann))
+		target_path, target_label = (ann.loc[ran]['image_name'], ann.loc[ran]['category_label'])
+		positive_ran = random.choice(ann[ann['category_label'] == target_label].index.values)
+		positive_path = ann[ann['category_label'] == target_label].loc[positive_ran]['image_name']
+
+		while target_path == positive_path:
+			print('loop with "target_path == positive_path"')
+			positive_ran = random.choice(ann[ann['category_label'] == target_label].index.values)
+			positive_path = ann[ann['category_label'] == target_label].loc[positive_ran]['image_name']
+
+		negative_ran = random.choice(ann[ann['category_label'] != target_label].index.values)
+		negative_path = ann[ann['category_label'] != target_label].loc[negative_ran]['image_name']
+		negative_label = ann[ann['category_label'] != target_label].loc[negative_ran]['category_label']
+
+		t_labels.append(target_label)
+		t_paths.append(create_image_path(target_path))
+		p_paths.append(create_image_path(positive_path))
+		n_labels.append(negative_label)
+		n_paths.append(create_image_path(negative_path))
+
+	return (t_labels, t_paths, p_paths), (n_labels, n_paths)
+
+
+def Eval(head=True):
+	path = os.path.join(os.getcwd(), 'watchout/data/raw_deepfashion_dataset/Eval/list_eval_partition.txt')
+	data = pd.read_csv(path, sep=r"\s*", skiprows=[0], header=0)
+	if head:
+		return data.head(100)
+	return data
+
+
+def Anno(is_train=True, head=False):
+	# Anno(os.path.join(os.getcwd(), 'watchout/data/raw_deepfashion_dataset/Anno'))
+	category_path = os.path.join(os.getcwd(), 'watchout/data/raw_deepfashion_dataset/Anno/list_category_img.txt')
+	# create_path(path,"list_category_img.txt")
+	category_data = pd.read_csv(category_path, sep=r"\s*", skiprows=[0], header=0)
+	eval_data = Eval(head=head)
+
+	if is_train:
+		category_data = pd.merge(category_data, eval_data[eval_data['evaluation_status'] == 'train'], how='inner',
+								 on=['image_name'])
+	else:
+		category_data = pd.merge(category_data, eval_data[eval_data['evaluation_status'] == 'test'], how='inner',
+								 on=['image_name'])
+	category_data.drop('evaluation_status', 1)
+
+	if head:
+		return category_data.head(100)
+	return category_data
+
+
+def random_query_sample(batch=1):
+	ann = Anno(is_train=False)
+	paths = []
+	for i in range(batch):
+		ran = random.randrange(0, len(ann))
+		paths.append(ann.loc[ran]['image_name'])
+	return paths
+
+def retrieve_images(t_sess, t_model, query_image, query_label, top_k=3):
+	query_transfer_values = t_sess.run(t_model.layers[len(t_model.layers)-1].output,
+									   feed_dict={'input_1:0':query_image})
+	cos = []
+	r_data = None
+	with open('./watchout/data/transfer_values/label-'+str(int(query_label))+'.json', 'r') as infile:
+		r_data = json.loads(infile.read())
+	for key in r_data.keys():
+		candidate = np.array(r_data[key])
+		cos.append((key, np_cosine_distance(query_transfer_values,candidate)))
+	cos.sort(key=lambda tup: tup[1])
+	return cos[len(cos)-top_k:]
+
+
+def np_cosine_distance(a,b):
+    return (scipy.spatial.distance.cosine(a, b))

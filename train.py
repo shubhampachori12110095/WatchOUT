@@ -1,23 +1,11 @@
 import os
 import sys
-from keras.optimizers import Adam, RMSprop
-
+from keras.optimizers import Adam
 sys.path.append(os.path.join(os.getcwd(),"models"))
-from object_detection.utils import label_map_util
-#from object_detection.utils import visualization_utils as vis_util
-
 from helper import *
 
 
 def train():
-    PATH_TO_LABELS = os.path.join(os.getcwd(), 'watchout/data/deepfashion_label_map.pbtxt')
-    NUM_CLASSES = 50
-
-    label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
-    categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES,
-                                                                use_display_name=True)
-    category_index = label_map_util.create_category_index(categories)
-
     detection_graph = get_detector_graph()
     triplet_graph = tf.Graph()
     keras_weights_path = os.path.join(os.getcwd(), 'watchout/models/tripletnetwork/checkpoint')
@@ -30,12 +18,10 @@ def train():
             detection_classes = detection_graph.get_tensor_by_name('detection_classes:0')
             num_detections = detection_graph.get_tensor_by_name('num_detections:0')
 
-            # triplet_graph라는 전혀 다른 graph object를 할당한 session에서 실행
             with tf.Session(graph=triplet_graph) as triplet_sess:
                 global_step = tf.get_variable('global_step', initializer=0, trainable=False)
                 increment_global_step = tf.assign(global_step, global_step + 1)
 
-                # 모델 resume 필요
                 triplet_model = get_triplet_model()
                 triplet_sess.run(tf.global_variables_initializer())
 
@@ -54,23 +40,15 @@ def train():
                 test_writer = tf.summary.FileWriter('./watchout/models/tripletnetwork/logs/test')
 
                 while True:
-                #for i in range(20):
-                    anchor, positive, negative = get_train_data(_batch=40, d_sess=sess,
-                                                                d_tensors={'image_tensor': image_tensor,
-                                                                           'detection_boxes': detection_boxes,
-                                                                           'detection_scores': detection_scores,
-                                                                           'detection_classes': detection_classes,
-                                                                           'num_detections': num_detections})
+                    anchor, positive, negative = get_train_data(_batch=40, d_sess=sess)
 
                     final_batch = anchor.shape[0]
 
                     training_loss = triplet_model.train_on_batch(x=[anchor, positive, negative],
                                                                  y=np.random.randint(2, size=(1, 2, final_batch)).T)
                     triplet_sess.run(increment_global_step)
-                    print('train done')
 
                     if global_step.eval() % 200 == 0:
-                    #if global_step.eval() % 1 == 0:
                         train_summary = tf.Summary(value=[tf.Summary.Value(tag="train_loss",
                                                                            simple_value=training_loss)])
                         train_writer.add_summary(train_summary, global_step.eval())
@@ -80,7 +58,6 @@ def train():
                         print('train write done')
 
                         if global_step.eval() % 600 == 0:
-                        #if global_step.eval() % 2 == 0:
                             _anchor, _positive, _negative = get_train_data(_batch=100, d_sess=sess,
                                                                            d_tensors={'image_tensor': image_tensor,
                                                                                       'detection_boxes': detection_boxes,
