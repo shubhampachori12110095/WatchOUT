@@ -1,7 +1,5 @@
 # WatchOUT
 
-![alt tag](./assets/attend2u_cvpr.png)
-
 The project was personally inspired by the public's interest in the clothes of the celebrities on TV.
 
 This project tried to combine two models for object detection and image retrieval. Specifically, Faster R-CNN and Triplet-Network using Inception were used.
@@ -11,7 +9,7 @@ For a query image, it tries to detect the target clothes, optionally crop the im
 [Deep Fashion Dataset](http://mmlab.ie.cuhk.edu.hk/projects/DeepFashion.html), especially "[Category and Attribute Prediction Benchmark](http://mmlab.ie.cuhk.edu.hk/projects/DeepFashion/AttributePrediction.html)", was used for training and retrieval.
 It requires to follow download-instructions from *Deep Fashion* Dataset to use the dataset.
 
-As mentioned above, it uses not only the raw image from the dataset, but also the cropped images focusing on the target clothes.
+As mentioned above, this project uses not only the raw image from the dataset, but also the cropped images focusing on the target clothes from faster R-CNN.
 
 ## Code Usage
 
@@ -76,7 +74,7 @@ cd ${project_root}/watchout/data
 tar -xvf transfer_values.tar.gz
 ```
 
-By running the script, you can get retrieved paths according to the query image path.
+By running the script, you can get retrieved image-paths according to the query image.
 
 ```
 python test.py --batch_size 1 --top_k 5 
@@ -87,37 +85,10 @@ Additionally, you can re-create transfer-values using the method "write_per_labe
 
 ## Examples
 
-Here are post generation examples:
+These below are the queries and the retrieved results:
 
-![alt tag](./assets/examples_best_post-1.png)
+![alt tag](examples.png)
 
-Here are hashtag generation examples:
-
-![alt tag](./assets/examples_best_hash-1.png)
-
-Here are hashtag and post generation examples with query images and multiple predictions by different users:
-
-![alt tag](./assets/examples_byaimg-1.png)
-
-Here are (little bit wrong but) interesting post generation examples:
-
-![alt tag](./assets/post_example_interest_3-1.png)
-
-Here are (little bit wrong but) interesting hashtag generation examples:
-
-![alt tag](./assets/hash_example_interest_1-1.png)
-
-
-
-## Acknowledgement
-
-We implement our model using [tensorflow](http://tensorflow.org) package. Thanks for tensorflow developers. :)
-
-We also thank Instagram for their API and Instagram users for their valuable posts.
-
-Additionally, we thank [coco-caption](https://github.com/tylin/coco-caption) developers for providing caption evaluation tools.
-
-We also appreciate [Juyong Kim](http://juyongkim.com), [Yunseok Jang](https://yunseokjang.github.io) and [Jongwook Choi](https://wook.kr) for helpful comments and discussions.
 
 ## Authors
 
