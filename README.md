@@ -87,7 +87,7 @@ Additionally, you can re-create transfer-values using the method "write_per_labe
 
 These below are the queries and the retrieved results:
 
-![alt tag](examples.png)
+![alt tag](example.png)
 
 
 ## Authors
