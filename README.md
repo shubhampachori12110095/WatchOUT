@@ -39,7 +39,7 @@ mv models ${project_root}
 mv raw_deepfashion_dataset ${project_root}/watchout/data
 ```
 
-4. Download data for Faster R-CNN from the [link](http://leekyungmoon.com) move it to ```{project_root}/watchout/models/fasterRCNN```
+4. Download Faster R-CNN-graph-data from the [link](https://www.dropbox.com/s/mv8c76jnmsmtjuv/graph.tar.gz?dl=0) and move it to ```{project_root}/watchout/models/fasterRCNN``` (or you can train it yourself following TF Tutorial)
 
 ```
 mv graph.tar.gz ${project_root}/watchout/models/fasterRCNN
@@ -52,21 +52,14 @@ tar -xvf graph.tar.gz
 By running the script, it trains the triplet-network model only (it doesn't train jointly with faster R-CNN) and used 1 gpu for training.
 
 ```
-python train.py
+python train.py --batch_size 1
 ```
 
-To train faster R-CNN separately, the script can be used from the ```${project_root}/models/research/``` directory.
-```
-python object_detection/train.py \
-    --logtostderr \
-    --pipeline_config_path=${project_root}/watchout.config \
-    --train_dir=${project_root}/watchout/models/fasterRCNN/checkpoint
-```
 
-### Testing
+### Eval
 
-For testing, I prepared transfer-values which are outputs from inception to calculate cosine distance with the output from the query image.
-So download data from this link and move it to ```${project_root}/watchout/data```
+For evaluation, I prepared transfer-values which are outputs from inception to calculate cosine distance with the output from the query image.
+So download data from this [link](https://www.dropbox.com/s/2bgoyzdgj2r0u7w/transfer_values.tar.gz?dl=0) and move it to ```${project_root}/watchout/data```
 
 ```
 mv transfer_values.tar.gz ${project_root}/watchout/data
