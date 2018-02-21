@@ -39,7 +39,7 @@ mv models ${project_root}
 mv raw_deepfashion_dataset ${project_root}/watchout/data
 ```
 
-4. Download Faster R-CNN-graph-data from the [link](https://www.dropbox.com/s/mv8c76jnmsmtjuv/graph.tar.gz?dl=0) and move it to ```{project_root}/watchout/models/fasterRCNN``` (or you can train it yourself following TF Tutorial)
+4. Download Faster R-CNN-graph-data from the [link](https://www.dropbox.com/s/mv8c76jnmsmtjuv/graph.tar.gz?dl=0) and move it to ```{project_root}/watchout/models/fasterRCNN``` (or you can train it yourself following [TF Tutorial](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/running_locally.md))
 
 ```
 mv graph.tar.gz ${project_root}/watchout/models/fasterRCNN
@@ -56,7 +56,7 @@ python train.py --batch_size 1
 ```
 
 
-### Eval
+### Evaluation
 
 For evaluation, I prepared transfer-values which are outputs from inception to calculate cosine distance from the output of the query image.
 So download data from this [link](https://www.dropbox.com/s/2bgoyzdgj2r0u7w/transfer_values.tar.gz?dl=0) and move it to ```${project_root}/watchout/data```
@@ -70,7 +70,7 @@ tar -xvf transfer_values.tar.gz
 By running the script, you can get retrieved image-paths according to the query image.
 
 ```
-python test.py --batch_size 1 --top_k 5 
+python eval.py --batch_size 1 --top_k 5 
 ```
 
 Additionally, you can re-create transfer-values using the method "write_per_label" in helper.py
