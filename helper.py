@@ -10,11 +10,12 @@ from keras.layers import Dense, Flatten, Dropout, Input, Lambda
 from keras.applications.inception_v3 import InceptionV3
 from keras import backend as K
 
-sys.path.append(os.path.join(os.getcwd(),"models"))
+sys.path.append(os.path.join(os.getcwd(),"models/research"))
 from object_detection.utils import label_map_util
 
 MODEL_NAME = 'faster_rcnn_resnet101_coco_11_06_2017'
 PATH_TO_CKPT = os.path.join(os.getcwd(), 'watchout/models/fasterRCNN/graph/frozen_inference_graph.pb')
+PATH_TO_IMG = os.path.join(os.getcwd(),'watchout/data/raw_deepfashion_dataset/Img')
 
 
 def load_image_into_numpy_array(image):
@@ -24,14 +25,14 @@ def load_image_into_numpy_array(image):
 
 
 def get_latest_weights_and_global_step(_path):
-	files = os.listdir(path=_path)
+	files = os.listdir(_path)
 	files.reverse()
 	return files[0], int(files[0].split('-')[1].split('.')[0])
 
 
 def promising_box_index(scores):
 	for idx, score in enumerate(scores):
-		if score < 0.8:  # 0.8 이상의 box만 리턴!
+		if score < 0.8:
 			return idx
 	return len(scores)
 
@@ -205,10 +206,10 @@ def random_triplet_sample(batch=1, is_train=True):
 		negative_label = ann[ann['category_label'] != target_label].loc[negative_ran]['category_label']
 
 		t_labels.append(target_label)
-		t_paths.append(create_image_path(target_path))
-		p_paths.append(create_image_path(positive_path))
+		t_paths.append(os.path.join(PATH_TO_IMG,target_path))
+		p_paths.append(os.path.join(PATH_TO_IMG,positive_path))
 		n_labels.append(negative_label)
-		n_paths.append(create_image_path(negative_path))
+		n_paths.append(os.path.join(PATH_TO_IMG,negative_path))
 
 	return (t_labels, t_paths, p_paths), (n_labels, n_paths)
 
@@ -260,7 +261,7 @@ def retrieve_images(t_sess, t_model, query_image, query_label, top_k=3):
 		candidate = np.array(r_data[key])
 		cos.append((key, np_cosine_distance(query_transfer_values,candidate)))
 	cos.sort(key=lambda tup: tup[1])
-	return cos[len(cos)-top_k:]
+	return cos[:top_k]
 
 
 def np_cosine_distance(a,b):

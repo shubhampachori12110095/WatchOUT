@@ -1,14 +1,20 @@
 import os
 import sys
 from keras.optimizers import Adam
-sys.path.append(os.path.join(os.getcwd(),"models"))
+sys.path.append(os.path.join(os.getcwd(),"models/research"))
 from helper import *
 
+flags = tf.app.flags
+flags.DEFINE_integer("batch_size", 1, "Number of batch size")
+flags.DEFINE_string('triplet_weights_dir', './watchout/models/tripletnetwork/checkpoint',
+                           """Directory where triplet checkpoints live.""")
+flags.DEFINE_string('image_dir', './watchout/data/raw_deepfashion_dataset/Img',
+                           """Directory where transfer values live.""")
+FLAGS = flags.FLAGS
 
 def train():
     detection_graph = get_detector_graph()
     triplet_graph = tf.Graph()
-    keras_weights_path = os.path.join(os.getcwd(), 'watchout/models/tripletnetwork/checkpoint')
 
     with detection_graph.as_default():
         with tf.Session(graph=detection_graph) as sess:
@@ -17,6 +23,9 @@ def train():
             detection_scores = detection_graph.get_tensor_by_name('detection_scores:0')
             detection_classes = detection_graph.get_tensor_by_name('detection_classes:0')
             num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+            d_tensors = {'image_tensor': image_tensor, 'detection_boxes': detection_boxes,
+                         'detection_scores': detection_scores,
+                         'detection_classes': detection_classes, 'num_detections': num_detections}
 
             with tf.Session(graph=triplet_graph) as triplet_sess:
                 global_step = tf.get_variable('global_step', initializer=0, trainable=False)
@@ -26,13 +35,12 @@ def train():
                 triplet_sess.run(tf.global_variables_initializer())
 
                 try:
-                    latest_weights, global_step_value = get_latest_weights_and_global_step(keras_weights_path)
-                    triplet_model.load_weights(latest_weights)
+                    latest_weights, global_step_value = get_latest_weights_and_global_step(FLAGS.triplet_weights_dir)
+                    triplet_model.load_weights(os.path.join(FLAGS.triplet_weights_dir,latest_weights))
                     triplet_sess.run(global_step.assign(global_step_value))
                     print('latest weights loaded, global_step='+str(global_step_value))
-                except Exception as e:
+                except Exception:
                     print('No weights file!')
-                    print(e)
 
                 triplet_model.compile(optimizer=Adam(lr=1e-7), loss=triplet_loss)
 
@@ -40,7 +48,7 @@ def train():
                 test_writer = tf.summary.FileWriter('./watchout/models/tripletnetwork/logs/test')
 
                 while True:
-                    anchor, positive, negative = get_train_data(_batch=40, d_sess=sess)
+                    anchor, positive, negative = get_train_data(_batch=FLAGS.batch_size, d_sess=sess, d_tensors=d_tensors)
 
                     final_batch = anchor.shape[0]
 
@@ -55,10 +63,10 @@ def train():
                         triplet_model.save_weights(os.path.join(os.getcwd(),
                                                                 'watchout/models/tripletnetwork/checkpoint/weights-' + str(
                                                                     global_step.eval()) + '.hdf5'))
-                        print('train write done')
+                        print('periodic train write done')
 
                         if global_step.eval() % 600 == 0:
-                            _anchor, _positive, _negative = get_train_data(_batch=100, d_sess=sess,
+                            _anchor, _positive, _negative = get_train_data(_batch=FLAGS.batch_size, d_sess=sess,
                                                                            d_tensors={'image_tensor': image_tensor,
                                                                                       'detection_boxes': detection_boxes,
                                                                                       'detection_scores': detection_scores,
@@ -70,7 +78,7 @@ def train():
                             test_summary = tf.Summary(value=[tf.Summary.Value(tag="test_loss",
                                                                               simple_value=test_loss)])
                             test_writer.add_summary(test_summary, global_step.eval())
-                            print('test write done')
+                            print('periodic test write done')
 def main(argv=None):
     train()
 
