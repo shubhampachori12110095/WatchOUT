@@ -39,7 +39,7 @@ mv models ${project_root}
 mv raw_deepfashion_dataset ${project_root}/watchout/data
 ```
 
-4. Download Faster R-CNN-graph-data from the [link](https://www.dropbox.com/s/mv8c76jnmsmtjuv/graph.tar.gz?dl=0) and move it to ```{project_root}/watchout/models/fasterRCNN``` (or you can train it yourself following [TF Tutorial](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/running_locally.md))
+4. Download Faster R-CNN-graph-data from the [here](https://www.dropbox.com/s/mv8c76jnmsmtjuv/graph.tar.gz?dl=0) and move it to ```{project_root}/watchout/models/fasterRCNN``` (or you can train it yourself following [TF Tutorial](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/running_locally.md))
 
 ```
 mv graph.tar.gz ${project_root}/watchout/models/fasterRCNN
@@ -59,7 +59,7 @@ python train.py --batch_size 1
 ### Evaluation
 
 For evaluation, I prepared transfer-values which are outputs from inception to calculate cosine distance from the output of the query image.
-So download data from this [link](https://www.dropbox.com/s/2bgoyzdgj2r0u7w/transfer_values.tar.gz?dl=0) and move it to ```${project_root}/watchout/data```
+So download data from this [here](https://www.dropbox.com/s/2bgoyzdgj2r0u7w/transfer_values.tar.gz?dl=0) and move it to ```${project_root}/watchout/data```
 
 ```
 mv transfer_values.tar.gz ${project_root}/watchout/data
