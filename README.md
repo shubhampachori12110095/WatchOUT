@@ -27,7 +27,7 @@ git clone https://github.com/LeeKyungMoon/WatchOUT.git
 pip install -r requirements.txt
 ```
 
-2. Import *[models](https://github.com/tensorflow/models)* including *[object-detection](https://github.com/tensorflow/models/tree/master/research/object_detection)* 
+2. Import *[models](https://github.com/tensorflow/models)* including *[object-detection](https://github.com/tensorflow/models/tree/master/research/object_detection)*  and it's necessary to follow [instructions](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md) to use object-detection modules
 
 ```
 mv models ${project_root}
@@ -80,7 +80,7 @@ Additionally, you can re-create transfer-values using the method "write_per_labe
 
 These below are the queries and the retrieved results:
 
-![alt tag](example2.png)
+![alt tag](example.png)
 
 
 ## Authors
