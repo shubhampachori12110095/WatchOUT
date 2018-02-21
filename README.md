@@ -56,9 +56,9 @@ python train.py --batch_size 1
 ```
 
 
-### Evaluation
+### Retrieval
 
-For evaluation, I prepared transfer-values which are outputs from inception to calculate cosine distance from the output of the query image.
+For retrieval, I prepared transfer-values which are outputs from inception to calculate cosine distance from the output of the query image.
 So download data from this [here](https://www.dropbox.com/s/2bgoyzdgj2r0u7w/transfer_values.tar.gz?dl=0) and move it to ```${project_root}/watchout/data```
 
 ```
